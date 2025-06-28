@@ -1,6 +1,6 @@
 name: Unity Build
 
-on: [workflow_dispatch, push]
+on: [workflow_dispatch, push] # Changed push to also include tag pushes for releases later if desired
 
 jobs:
   build:
@@ -9,6 +9,9 @@ jobs:
     permissions:
       checks: write
       contents: write
+      # Add 'packages: write' if you plan to push Docker images to GitHub Container Registry,
+      # or if your release action specifically requires it for certain assets.
+      # For just creating releases and uploading files, 'contents: write' is key.
     steps:
       # Checkout
       - name: Checkout repository
@@ -33,12 +36,23 @@ jobs:
           UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
         with:
           githubToken: ${{ secrets.GITHUB_TOKEN }}
+          # You might have other 'with' parameters for test runner here, from previous logs
+          # e.g., unityVersion: auto, testMode: all, artifactsPath: artifacts, etc.
+
+      # This ensures the working directory is clean before the build step
+      - name: Reset Git changes
+        run: |
+          git config --global --add safe.directory /github/workspace # Safeguard for git commands
+          git reset --hard HEAD # Discard all modifications in working directory and staging area
+          git clean -fdx # Remove untracked files and directories (including ignored ones)
+        working-directory: ${{ github.workspace }} # Ensure commands run in the repo root
 
       # Build
       - name: Build project
         uses: game-ci/unity-builder@v4
         env:
           UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+          # REMINDER: Same as above for UNITY_EMAIL/UNITY_PASSWORD
           UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
           UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
         with:
