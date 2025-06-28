@@ -1,0 +1,14 @@
+name: Unity Activation Workflow
+
+on: [push, pull_request]
+
+jobs:
+  activate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Unity - Activate
+        uses: game-ci/unity-activate@v2.0.0
+        env:
+          UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
+          UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
+          UNITY_SERIAL: ${{ secrets.UNITY_SERIAL }} # Or use UNITY_LICENSE for professional/personal license file
