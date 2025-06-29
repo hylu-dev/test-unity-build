@@ -1,33 +1,27 @@
-name: Unity Build
+name: Unity CI/CD with Parallel Tests and Build
 
-on: [workflow_dispatch] # Changed push to also include tag pushes for releases later if desired
+on: [workflow_dispatch, push] # Added workflow_dispatch for manual runs
 
 jobs:
-  build:
-    name: Build my project ✨
+  test:
+    name: Run tests 🧪
     runs-on: ubuntu-latest
     permissions:
-      checks: write
-      contents: write
-      # Add 'packages: write' if you plan to push Docker images to GitHub Container Registry,
-      # or if your release action specifically requires it for certain assets.
-      # For just creating releases and uploading files, 'contents: write' is key.
+      contents: read # Only needs read access for testing
     steps:
-      # Checkout
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
           lfs: true
 
-      # Cache
-      - uses: actions/cache@v3
+      - name: Cache Unity Library
+        uses: actions/cache@v3
         with:
           path: Library
           key: Library-${{ hashFiles('Assets/**', 'Packages/**', 'ProjectSettings/**') }}
           restore-keys: |
             Library-
 
-      # Test
       - name: Run tests
         uses: game-ci/unity-test-runner@v4
         env:
@@ -36,10 +30,32 @@ jobs:
           UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
         with:
           githubToken: ${{ secrets.GITHUB_TOKEN }}
-          # You might have other 'with' parameters for test runner here, from previous logs
-          # e.g., unityVersion: auto, testMode: all, artifactsPath: artifacts, etc.
+          # Add other test runner params here if needed, e.g., unityVersion, testMode
 
-      # --- Debug loggin incase of dirty branch error ---
+  build:
+    name: Build project ✨
+    runs-on: ubuntu-latest
+    needs: test # This ensures the build job only runs if the test job completes successfully
+    permissions:
+      checks: write
+      contents: write # Needed for uploading artifacts and potentially for releases
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          lfs: true
+
+      - name: Cache Unity Library
+        uses: actions/cache@v3
+        with:
+          path: Library
+          key: Library-${{ hashFiles('Assets/**', 'Packages/**', 'ProjectSettings/**') }}
+          restore-keys: |
+            Library-
+
+      # --- Debugging step: Show all uncommitted changes (diff) ---
+      # This is placed before the build step to catch any modifications
+      # made by previous actions or Unity's internal processes.
       - name: Show all uncommitted changes (diff)
         run: |
           echo "--- Checking for all uncommitted changes ---"
@@ -48,26 +64,26 @@ jobs:
           else
             echo "Uncommitted changes detected:"
             git diff HEAD
-            # You might want to fail the workflow if uncommitted changes are found unexpectedly
+            # Optionally, uncomment 'exit 1' if you want the workflow to fail here
+            # if unexpected changes are found.
             # exit 1
           fi
           echo "--- End of uncommitted changes diff ---"
-        continue-on-error: true # Keep this true for debugging; set to false if you want the workflow to fail when diffs exist.
-        
-      # Build
+        continue-on-error: true # Set to false if you want the workflow to fail on diffs
+
       - name: Build project
         uses: game-ci/unity-builder@v4
         env:
           UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
-          # REMINDER: Same as above for UNITY_EMAIL/UNITY_PASSWORD
           UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
           UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
         with:
-          targetPlatform: StandaloneWindows
+          targetPlatform: StandaloneWindows # Used your original targetPlatform
+          allowDirtyBuild: true # Retained this from your example
 
-      # Output
-      - uses: actions/upload-artifact@v4
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4 # Updated to v4
         with:
           name: Build
           path: build
-          retention-days: 7 # Keep artifact for 1 week
+          retention-days: 7 # Auto-delete after 1 week
