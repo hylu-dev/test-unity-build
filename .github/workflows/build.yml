@@ -1,6 +1,6 @@
 name: Unity Build
 
-on: [workflow_dispatch, push] # Changed push to also include tag pushes for releases later if desired
+on: [workflow_dispatch] # Changed push to also include tag pushes for releases later if desired
 
 jobs:
   build:
@@ -39,6 +39,21 @@ jobs:
           # You might have other 'with' parameters for test runner here, from previous logs
           # e.g., unityVersion: auto, testMode: all, artifactsPath: artifacts, etc.
 
+      # --- Debug loggin incase of dirty branch error ---
+      - name: Show all uncommitted changes (diff)
+        run: |
+          echo "--- Checking for all uncommitted changes ---"
+          if git diff --quiet HEAD; then
+            echo "No uncommitted changes found."
+          else
+            echo "Uncommitted changes detected:"
+            git diff HEAD
+            # You might want to fail the workflow if uncommitted changes are found unexpectedly
+            # exit 1
+          fi
+          echo "--- End of uncommitted changes diff ---"
+        continue-on-error: true # Keep this true for debugging; set to false if you want the workflow to fail when diffs exist.
+        
       # Build
       - name: Build project
         uses: game-ci/unity-builder@v4
