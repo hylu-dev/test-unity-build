@@ -55,3 +55,4 @@ jobs:
         with:
           name: Build
           path: build
+          retention-days: 7 # Keep artifact for 1 week
