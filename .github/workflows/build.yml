@@ -7,7 +7,7 @@ jobs:
     name: Run tests 🧪
     runs-on: ubuntu-latest
     permissions:
-      contents: read # Only needs read access for testing
+      contents: write
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -79,7 +79,7 @@ jobs:
           UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
         with:
           targetPlatform: StandaloneWindows # Used your original targetPlatform
-          allowDirtyBuild: true # Retained this from your example
+          # allowDirtyBuild: true # Not recommended
 
       - name: Upload build artifact
         uses: actions/upload-artifact@v4 # Updated to v4
