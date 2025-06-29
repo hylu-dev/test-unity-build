@@ -1,3 +1,5 @@
+# A weekly job that uses GameCI to run Unity's test framework and build.
+# Runs in parallel to avoid space issues
 name: Friday Nightly Development Test/Build
 
 on:
@@ -13,6 +15,17 @@ jobs:
       checks: write
       contents: write
     steps:
+      - name: Free up disk space
+        uses: jlumbroso/free-disk-space@v1.3.1
+        with:
+          # Multiplier of 1024
+          tool-cache: true
+          android: true
+          dotnet: true
+          haskell: true
+          large-packages: true
+          swap-storage: true
+
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
@@ -43,6 +56,17 @@ jobs:
       checks: write
       contents: write
     steps:
+      - name: Free up disk space
+        uses: jlumbroso/free-disk-space@v1.3.1
+        with:
+          # Multiplier of 1024
+          tool-cache: true
+          android: true
+          dotnet: true
+          haskell: true
+          large-packages: true
+          swap-storage: true
+
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
@@ -56,6 +80,7 @@ jobs:
           restore-keys: |
             Library-
 
+      # Debug log in case of "Dirty Branch" errors
       - name: Show all uncommitted changes (diff)
         run: |
           echo "--- Checking for all uncommitted changes ---"
