@@ -1,6 +1,9 @@
-name: Unity CI/CD with Parallel Tests and Build
+name: Friday Nightly Development Test/Build
 
-on: [workflow_dispatch, push] # Added workflow_dispatch for manual runs
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '59 23 * * 5' # Runs at 23:59 (11:59 PM) every Friday
 
 jobs:
   test:
@@ -31,15 +34,14 @@ jobs:
           UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
         with:
           githubToken: ${{ secrets.GITHUB_TOKEN }}
-          # Add other test runner params here if needed, e.g., unityVersion, testMode
 
   build:
     name: Build project ✨
     runs-on: ubuntu-latest
-    needs: test # This ensures the build job only runs if the test job completes successfully
+    needs: test
     permissions:
       checks: write
-      contents: write # Needed for uploading artifacts and potentially for releases
+      contents: write
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -54,9 +56,6 @@ jobs:
           restore-keys: |
             Library-
 
-      # --- Debugging step: Show all uncommitted changes (diff) ---
-      # This is placed before the build step to catch any modifications
-      # made by previous actions or Unity's internal processes.
       - name: Show all uncommitted changes (diff)
         run: |
           echo "--- Checking for all uncommitted changes ---"
@@ -65,12 +64,9 @@ jobs:
           else
             echo "Uncommitted changes detected:"
             git diff HEAD
-            # Optionally, uncomment 'exit 1' if you want the workflow to fail here
-            # if unexpected changes are found.
-            # exit 1
           fi
           echo "--- End of uncommitted changes diff ---"
-        continue-on-error: true # Set to false if you want the workflow to fail on diffs
+        continue-on-error: true
 
       - name: Build project
         uses: game-ci/unity-builder@v4
@@ -79,12 +75,12 @@ jobs:
           UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
           UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
         with:
-          targetPlatform: StandaloneWindows # Used your original targetPlatform
-          # allowDirtyBuild: true # Not recommended
+          targetPlatform: StandaloneWindows
+          buildOptions: Development
 
       - name: Upload build artifact
-        uses: actions/upload-artifact@v4 # Updated to v4
+        uses: actions/upload-artifact@v4
         with:
           name: Build
           path: build
-          retention-days: 7 # Auto-delete after 1 week
+          retention-days: 7
